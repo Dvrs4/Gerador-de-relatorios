@@ -1,0 +1,290 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Relatórios</title>
+  <style>
+    body { font-family: Arial, sans-serif; background: #f0f2f5; margin: 0; padding: 20px; color: #333; }
+    h1 { font-size: 1.8rem; margin-bottom: 20px; }
+    .cards { display: flex; gap: 15px; margin-bottom: 30px; }
+    .card { flex: 1; background: #fff; padding: 20px; border-radius: 8px; box-shadow: 0 2px 4px rgba(0,0,0,0.1); cursor:pointer; }
+    .card h3 { margin: 0 0 10px; color: #0056b3; }
+    .form-section { display:none; background:#fff; padding:25px; border-radius:8px; box-shadow:0 2px 4px rgba(0,0,0,0.1); margin-bottom:30px; }
+    .form-section.active { display:block; }
+    .form-group { margin-bottom:15px; }
+    label { display:block; margin-bottom:5px; font-weight:bold; }
+    input[type="text"], input[type="month"] { padding:8px; border:1px solid #ccc; border-radius:5px; width:100%; }
+    select { padding:8px; border:1px solid #ccc; border-radius:5px; width:100%; }
+    .planilha { width:100%; border-collapse:collapse; margin-top:15px; }
+    .planilha th, .planilha td { border:1px solid #ddd; padding:8px; text-align:center; }
+    .planilha th { background:#f8f9fa; }
+    .assinaturas div { margin-top:20px; }
+    .hidden { display:none; }
+  </style>
+</head>
+<body>
+
+  <h1>Faturamento</h1>
+
+  <!-- Menu de relatórios -->
+  <div class="cards">
+    <div class="card" onclick="abrirRelatorio('real')">
+      <h3>Relatório de Faturamento Real</h3>
+      <p>Gere o seu relatorio de faturamento</p>
+    </div>
+    <div class="card" onclick="abrirRelatorio('simulacao')">
+      <h3>Relatório de Simulação de Faturamento</h3>
+      <p>Gere a sua simulação de faturamento</p>
+    </div>
+    <div class="card" onclick="abrirRelatorio('nao')">
+      <h3>Relatório de Não Faturamento</h3>
+      <p>Gere o seu relatorio de não faturamento</p>
+    </div>
+  </div>
+
+  <!-- Relatório Real -->
+  <div id="relatorio-real" class="form-section">
+    <h2>Relatório de Faturamento Real</h2>
+
+    <!-- Quem vai assinar -->
+    <div class="form-group">
+      <label>Quem vai assinar:</label>
+      <select onchange="atualizarAssinaturas(this,'assinaturas-real')">
+        <option value="">Selecione...</option>
+        <option value="cliente">Somente Cliente</option>
+        <option value="contador">Somente Contador</option>
+        <option value="ambos">Cliente e Contador</option>
+      </select>
+    </div>
+
+    <!-- Representante Legal -->
+    <div class="form-group">
+      <label><input type="checkbox" onclick="toggleRepresentante(this,'rep-real')"> Deseja informar o representante legal?</label>
+    </div>
+    <div id="rep-real" class="hidden">
+      <input type="text" placeholder="Nome">
+      <input type="text" placeholder="CPF">
+      <input type="text" placeholder="Nacionalidade - Data de nascimento">
+      <input type="text" placeholder="RG - Órgão emissor">
+      <input type="text" placeholder="Endereço - Logradouro/CEP">
+      <input type="text" placeholder="Estado Civil">
+      <input type="text" placeholder="Profissão">
+    </div>
+
+    <!-- CNPJ -->
+    <div class="form-group">
+      <label>CNPJ:</label>
+      <input type="text" placeholder="00.000.000/0000-00">
+    </div>
+
+    <!-- Período -->
+    <div class="form-group">
+      <label>Período:</label>
+      <div style="display:flex; gap:10px; align-items:center;">
+        <input type="month" id="inicio-real" onchange="gerarTabela('inicio-real','fim-real','tabela-real')">
+        <span>até</span>
+        <input type="month" id="fim-real" onchange="gerarTabela('inicio-real','fim-real','tabela-real')">
+      </div>
+    </div>
+
+    <table class="planilha" id="tabela-real">
+      <thead><tr><th>Mês/Ano</th><th>Valores</th></tr></thead>
+      <tbody></tbody>
+    </table>
+
+    <!-- Data relatório -->
+    <div class="form-group">
+      <label>Data do relatório:</label>
+      <input type="date">
+    </div>
+
+    <!-- Assinaturas -->
+    <div class="form-group">
+      <label>Assinatura:</label>
+      <div id="assinaturas-real" class="assinaturas"></div>
+    </div>
+  </div>
+
+  <!-- Relatório Simulação -->
+  <div id="relatorio-simulacao" class="form-section">
+    <h2>Relatório de Simulação de Faturamento</h2>
+
+    <!-- Quem vai assinar -->
+    <div class="form-group">
+      <label>Quem vai assinar:</label>
+      <select onchange="atualizarAssinaturas(this,'assinaturas-simulacao')">
+        <option value="">Selecione...</option>
+        <option value="cliente">Somente Cliente</option>
+        <option value="contador">Somente Contador</option>
+        <option value="ambos">Cliente e Contador</option>
+      </select>
+    </div>
+
+    <!-- Representante Legal -->
+    <div class="form-group">
+      <label><input type="checkbox" onclick="toggleRepresentante(this,'rep-simulacao')"> Deseja informar o representante legal?</label>
+    </div>
+    <div id="rep-simulacao" class="hidden">
+      <input type="text" placeholder="Nome">
+      <input type="text" placeholder="CPF">
+      <input type="text" placeholder="Nacionalidade - Data de nascimento">
+      <input type="text" placeholder="RG - Órgão emissor">
+      <input type="text" placeholder="Endereço - Logradouro/CEP">
+      <input type="text" placeholder="Estado Civil">
+      <input type="text" placeholder="Profissão">
+    </div>
+
+    <!-- CNPJ -->
+    <div class="form-group">
+      <label>CNPJ:</label>
+      <input type="text" placeholder="00.000.000/0000-00">
+    </div>
+
+    <!-- Período -->
+    <div class="form-group">
+      <label>Período:</label>
+      <div style="display:flex; gap:10px; align-items:center;">
+        <input type="month" id="inicio-simulacao" onchange="gerarTabela('inicio-simulacao','fim-simulacao','tabela-simulacao')">
+        <span>até</span>
+        <input type="month" id="fim-simulacao" onchange="gerarTabela('inicio-simulacao','fim-simulacao','tabela-simulacao')">
+      </div>
+    </div>
+
+    <!-- Forma de cálculo -->
+    <div class="form-group">
+      <label>Forma de cálculo:</label>
+      <select>
+        <option>Média entre valores (aleatórios crescentes)</option>
+        <option>Digitação livre</option>
+        <option>Média (total ÷ número de meses)</option>
+      </select>
+    </div>
+
+    <table class="planilha" id="tabela-simulacao">
+      <thead><tr><th>Mês/Ano</th><th>Valores</th></tr></thead>
+      <tbody></tbody>
+    </table>
+
+    <!-- Data relatório -->
+    <div class="form-group">
+      <label>Data do relatório:</label>
+      <input type="date">
+    </div>
+
+    <!-- Assinaturas -->
+    <div class="form-group">
+      <label>Assinatura:</label>
+      <div id="assinaturas-simulacao" class="assinaturas"></div>
+    </div>
+  </div>
+
+  <!-- Relatório Não Faturamento -->
+  <div id="relatorio-nao" class="form-section">
+    <h2>Relatório de Não Faturamento</h2>
+
+    <!-- Quem vai assinar -->
+    <div class="form-group">
+      <label>Quem vai assinar:</label>
+      <select onchange="atualizarAssinaturas(this,'assinaturas-nao')">
+        <option value="">Selecione...</option>
+        <option value="cliente">Somente Cliente</option>
+        <option value="contador">Somente Contador</option>
+        <option value="ambos">Cliente e Contador</option>
+      </select>
+    </div>
+
+    <!-- CNPJ -->
+    <div class="form-group">
+      <label>CNPJ:</label>
+      <input type="text" placeholder="00.000.000/0000-00">
+    </div>
+
+    <!-- Representante Legal -->
+    <div class="form-group">
+      <label><input type="checkbox" onclick="toggleRepresentante(this,'rep-nao')"> Deseja informar o representante legal?</label>
+    </div>
+    <div id="rep-nao" class="hidden">
+      <input type="text" placeholder="Nome">
+      <input type="text" placeholder="CPF">
+      <input type="text" placeholder="Nacionalidade - Data de nascimento">
+      <input type="text" placeholder="RG - Órgão emissor">
+      <input type="text" placeholder="Endereço - Logradouro/CEP">
+      <input type="text" placeholder="Estado Civil">
+      <input type="text" placeholder="Profissão">
+    </div>
+
+    <!-- Período -->
+    <div class="form-group">
+      <label>Período:</label>
+      <div style="display:flex; gap:10px; align-items:center;">
+        <input type="month" id="inicio-nao" onchange="gerarMensagemNaoFaturamento()">
+        <span>até</span>
+        <input type="month" id="fim-nao" onchange="gerarMensagemNaoFaturamento()">
+      </div>
+    </div>
+
+    <p id="mensagem-nao"></p>
+
+    <!-- Assinaturas -->
+    <div class="form-group">
+      <label>Assinatura:</label>
+      <div id="assinaturas-nao" class="assinaturas"></div>
+    </div>
+  </div>
+
+  <script>
+    // Abrir relatórios
+    function abrirRelatorio(tipo){
+      document.querySelectorAll('.form-section').forEach(sec=>sec.classList.remove('active'));
+      document.getElementById('relatorio-'+tipo).classList.add('active');
+    }
+
+    // Mostrar/ocultar representante
+    function toggleRepresentante(checkbox,id){
+      document.getElementById(id).classList.toggle('hidden', !checkbox.checked);
+    }
+
+    // Gerar tabela de meses
+    function gerarTabela(idInicio,idFim,tabelaId){
+      const inicio=document.getElementById(idInicio).value;
+      const fim=document.getElementById(idFim).value;
+      const tbody=document.querySelector("#"+tabelaId+" tbody");
+      tbody.innerHTML="";
+      if(!inicio||!fim)return;
+      let [anoIni,mesIni]=inicio.split("-").map(Number);
+      let [anoFim,mesFim]=fim.split("-").map(Number);
+      while(anoIni<anoFim||(anoIni===anoFim&&mesIni<=mesFim)){
+        let nomeMes=new Date(anoIni,mesIni-1).toLocaleString("pt-BR",{month:"short"});
+        tbody.innerHTML+=`<tr><td>${nomeMes}/${anoIni}</td><td><input type="text"></td></tr>`;
+        mesIni++; if(mesIni>12){mesIni=1; anoIni++;}
+      }
+    }
+
+    // Assinaturas dinâmicas
+    function atualizarAssinaturas(selectEl,targetId){
+      const container=document.getElementById(targetId);
+      container.innerHTML="";
+      if(selectEl.value==="cliente"||selectEl.value==="ambos"){
+        container.innerHTML+=`<div>___________________________________<br>Cliente</div>`;
+      }
+      if(selectEl.value==="contador"||selectEl.value==="ambos"){
+        container.innerHTML+=`<div>___________________________________<br>Contador</div>`;
+      }
+    }
+
+    // Mensagem para não faturamento
+    function gerarMensagemNaoFaturamento(){
+      const inicio=document.getElementById("inicio-nao").value;
+      const fim=document.getElementById("fim-nao").value;
+      if(inicio&&fim){
+        let [ai,mi]=inicio.split("-");
+        let [af,mf]=fim.split("-");
+        document.getElementById("mensagem-nao").innerText=
+          `No período de ${mi}/${ai} até ${mf}/${af} não houve faturamento.`;
+      }
+    }
+  </script>
+
+</body>
+</html>
