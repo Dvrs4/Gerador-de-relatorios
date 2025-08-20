@@ -1,1 +1,603 @@
-d
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Sistema de Relatórios</title>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf-autotable/3.5.28/jspdf.plugin.autotable.min.js"></script>
+  <style>
+    body { font-family: Arial, sans-serif; margin:20px; background:#f4f4f4; }
+    h1 { color:#0056b3; }
+    .cards { display:flex; gap:15px; margin-bottom:20px; }
+    .card {
+      flex:1; background:#fff; padding:15px; border-radius:8px; cursor:pointer;
+      box-shadow:0 2px 5px rgba(0,0,0,0.1); text-align:center;
+    }
+    .card.active { border:2px solid #0056b3; }
+    .form-section { display:none; background:#fff; padding:20px; border-radius:8px; }
+    .form-section.active { display:block; }
+    label { font-weight:bold; margin-top:10px; display:block; }
+    input, select { width:100%; padding:8px; margin-top:5px; }
+    table { width:100%; border-collapse:collapse; margin-top:15px; }
+    table, th, td { border:1px solid #ccc; }
+    th, td { padding:8px; text-align:center; }
+    .btn { background:#0056b3; color:#fff; border:none; padding:10px 15px; border-radius:5px; cursor:pointer; margin-top:10px; }
+    .assinatura { margin-top:30px; text-align:center; font-weight:bold; }
+    .hidden { display: none !important; }
+    /* Checkbox à esquerda e alinhado */
+    .form-group {
+      display: block;
+      margin-top: 10px;
+    }
+    .form-group label {
+      font-weight: bold;
+      margin: 0;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+    .form-group input[type="checkbox"] {
+      margin: 0;
+      width: 18px;
+      height: 18px;
+    }
+  </style>
+</head>
+<body>
+
+  <h1>Relatórios</h1>
+
+  <div class="cards">
+    <div class="card active" onclick="abrirAba(0)">Relatório de Faturamento Real</div>
+    <div class="card" onclick="abrirAba(1)">Relatório de Simulação de Faturamento</div>
+    <div class="card" onclick="abrirAba(2)">Relatório de Não Faturamento</div>
+  </div>
+
+<!-- Aba 1 -->
+<div class="form-section active" id="aba1">
+  <h2>Relatório de Faturamento Real</h2>
+  <label>Quem vai assinar:</label>
+  <select id="assinatura1">
+    <option value="">Selecione...</option>
+    <option value="Cliente">Cliente</option>
+    <option value="Contador">Contador</option>
+    <option value="Ambos">Cliente e Contador</option>
+  </select>
+
+  <!-- Bloco do contador -->
+  <div class="form-group" id="bloco-contador1" style="display:none;">
+    <label>Dados do contador:</label>
+    <input type="text" id="nomeContador1" placeholder="Nome">
+    <input type="text" id="crcContador1" placeholder="Contador CRC-TO: 004845-O">
+    <input type="text" id="crcEstados1" placeholder="CRC Ativo Estados: TO/PA/PI/MA/GO/SP/RJ/PR/SC">
+  </div>
+
+  <!-- Representante Legal -->
+  <div class="form-group">
+    <label>
+      <input type="checkbox" onclick="toggleRepresentante(this,'rep-real')">
+      Deseja informar o representante legal?
+    </label>
+  </div>
+  <div id="rep-real" class="hidden" style="margin-bottom:10px;">
+    <input type="text" placeholder="Nome" disabled>
+    <input type="text" placeholder="CPF" disabled>
+    <input type="text" placeholder="Nacionalidade - Data de nascimento" disabled>
+    <input type="text" placeholder="RG - Órgão emissor" disabled>
+    <input type="text" placeholder="Endereço - Logradouro/CEP" disabled>
+    <input type="text" placeholder="Estado Civil" disabled>
+    <input type="text" placeholder="Profissão" disabled>
+  </div>
+
+  <label>CNPJ:</label>
+  <input type="text" id="cnpj1" placeholder="00.000.000/0000-00" onblur="buscarCNPJ(this.value, 'dadosEmpresa1')">
+  <div id="dadosEmpresa1"></div>
+
+  <label>Período</label>
+  <input type="month" id="inicio1"> até <input type="month" id="fim1">
+  <button class="btn" onclick="gerarTabela('inicio1','fim1','tabela1')">Gerar Tabela</button>
+
+  <table id="tabela1">
+    <thead><tr><th>Mês/Ano</th><th>Valores</th></tr></thead>
+    <tbody></tbody>
+  </table>
+
+  <div id="total1"><b>Total:</b> R$ 0,00</div>
+
+  <button class="btn" onclick="gerarPDF1()">Exportar para PDF</button>
+</div>
+
+<!-- Aba 2 -->
+<div class="form-section" id="aba2">
+  <h2>Relatório de Simulação de Faturamento</h2>
+  <label>Quem vai assinar:</label>
+  <select id="assinatura2">
+    <option value="">Selecione...</option>
+    <option value="Cliente">Cliente</option>
+    <option value="Contador">Contador</option>
+    <option value="Ambos">Cliente e Contador</option>
+  </select>
+
+  <!-- Bloco do contador -->
+  <div class="form-group" id="bloco-contador2" style="display:none;">
+    <label>Dados do contador:</label>
+    <input type="text" id="nomeContador2" placeholder="Nome">
+    <input type="text" id="crcContador2" placeholder="Contador CRC-TO: 004845-O">
+    <input type="text" id="crcEstados2" placeholder="CRC Ativo Estados: TO/PA/PI/MA/GO/SP/RJ/PR/SC">
+  </div>
+
+  <!-- Representante Legal Aba 2 -->
+  <div class="form-group">
+    <label>
+      <input type="checkbox" onclick="toggleRepresentante(this,'rep-sim')">
+      Deseja informar o representante legal?
+    </label>
+  </div>
+  <div id="rep-sim" class="hidden" style="margin-bottom:10px;">
+    <input type="text" placeholder="Nome" disabled>
+    <input type="text" placeholder="CPF" disabled>
+    <input type="text" placeholder="Nacionalidade - Data de nascimento" disabled>
+    <input type="text" placeholder="RG - Órgão emissor" disabled>
+    <input type="text" placeholder="Endereço - Logradouro/CEP" disabled>
+    <input type="text" placeholder="Estado Civil" disabled>
+    <input type="text" placeholder="Profissão" disabled>
+  </div>
+
+  <label>CNPJ:</label>
+  <input type="text" id="cnpj2" placeholder="00.000.000/0000-00" onblur="buscarCNPJ(this.value, 'dadosEmpresa2')">
+  <div id="dadosEmpresa2"></div>
+
+  <label>Período</label>
+  <input type="month" id="inicio2"> até <input type="month" id="fim2">
+  <button class="btn" onclick="gerarTabela('inicio2','fim2','tabela2')">Gerar Tabela</button>
+
+  <label>Forma de cálculo</label>
+  <select id="calculo2" onchange="configurarCalculo()">
+    <option value="livre">Digitação Livre</option>
+    <option value="media">Média</option>
+    <option value="aleatorio">Média Entre Valores (Aleatórios Crescentes)</option>
+  </select>
+
+  <div id="parametrosCalculo" style="margin-top:10px;"></div>
+
+  <table id="tabela2">
+    <thead><tr><th>Mês/Ano</th><th>Valores</th></tr></thead>
+    <tbody></tbody>
+  </table>
+
+  <div id="total2"><b>Total:</b> R$ 0,00</div>
+
+  <button class="btn" onclick="gerarPDF2()">Exportar para PDF</button>
+</div>
+
+<!-- Aba 3 -->
+<div class="form-section" id="aba3">
+  <h2>Relatório de Não Faturamento</h2>
+  <label>Quem vai assinar:</label>
+  <select id="assinatura3">
+    <option value="">Selecione...</option>
+    <option value="Cliente">Cliente</option>
+    <option value="Contador">Contador</option>
+    <option value="Ambos">Cliente e Contador</option>
+  </select>
+
+  <!-- Bloco do contador -->
+  <div class="form-group" id="bloco-contador3" style="display:none;">
+    <label>Dados do contador:</label>
+    <input type="text" id="nomeContador3" placeholder="Nome">
+    <input type="text" id="crcContador3" placeholder="Contador CRC-TO: 004845-O">
+    <input type="text" id="crcEstados3" placeholder="CRC Ativo Estados: TO/PA/PI/MA/GO/SP/RJ/PR/SC">
+  </div>
+
+  <!-- Representante Legal Aba 3 -->
+  <div class="form-group">
+    <label>
+      <input type="checkbox" onclick="toggleRepresentante(this,'rep-nao')">
+      Deseja informar o representante legal?
+    </label>
+  </div>
+  <div id="rep-nao" class="hidden" style="margin-bottom:10px;">
+    <input type="text" placeholder="Nome" disabled>
+    <input type="text" placeholder="CPF" disabled>
+    <input type="text" placeholder="Nacionalidade - Data de nascimento" disabled>
+    <input type="text" placeholder="RG - Órgão emissor" disabled>
+    <input type="text" placeholder="Endereço - Logradouro/CEP" disabled>
+    <input type="text" placeholder="Estado Civil" disabled>
+    <input type="text" placeholder="Profissão" disabled>
+  </div>
+
+  <label>CNPJ:</label>
+  <input type="text" id="cnpj3" placeholder="00.000.000/0000-00" onblur="buscarCNPJ(this.value, 'dadosEmpresa3')">
+  <div id="dadosEmpresa3"></div>
+
+  <label>Período</label>
+  <input type="month" id="inicio3"> até <input type="month" id="fim3">
+
+  <div id="mensagem3" style="margin-top:15px; font-style:italic;">
+    No período selecionado não houve faturamento.
+  </div>
+
+  <button class="btn" onclick="gerarPDF3()">Exportar para PDF</button>
+</div>
+
+<script>
+  // Troca de abas
+  function abrirAba(idx){
+    document.querySelectorAll('.card').forEach((c,i)=>c.classList.toggle('active',i===idx));
+    document.querySelectorAll('.form-section').forEach((s,i)=>s.classList.toggle('active',i===idx));
+  }
+
+  // Mostrar/ocultar representante legal e habilitar/desabilitar campos
+  function toggleRepresentante(checkbox, divId){
+    const div = document.getElementById(divId);
+    div.classList.toggle('hidden', !checkbox.checked);
+    div.querySelectorAll('input').forEach(inp => inp.disabled = !checkbox.checked);
+  }
+
+  // Mostrar/esconder bloco do contador conforme seleção
+  document.getElementById('assinatura1').addEventListener('change', function() {
+    const valor = this.value;
+    document.getElementById('bloco-contador1').style.display =
+      (valor === 'Contador' || valor === 'Ambos') ? 'block' : 'none';
+  });
+  document.getElementById('assinatura2').addEventListener('change', function() {
+    const valor = this.value;
+    document.getElementById('bloco-contador2').style.display =
+      (valor === 'Contador' || valor === 'Ambos') ? 'block' : 'none';
+  });
+  document.getElementById('assinatura3').addEventListener('change', function() {
+    const valor = this.value;
+    document.getElementById('bloco-contador3').style.display =
+      (valor === 'Contador' || valor === 'Ambos') ? 'block' : 'none';
+  });
+
+  // Formatar moeda BRL
+  function formatarMoeda(input){
+    let valor = input.value.replace(/\D/g,'');
+    if(valor === "") { input.value=""; return; }
+    valor = (parseInt(valor)/100).toLocaleString("pt-BR",{style:"currency",currency:"BRL"});
+    input.value = valor;
+    calcularTotais();
+  }
+
+  // Geração de tabela com meses por extenso
+  function gerarTabela(idInicio,idFim,tabelaId){
+    const inicio=document.getElementById(idInicio).value;
+    const fim=document.getElementById(idFim).value;
+    const tbody=document.querySelector("#"+tabelaId+" tbody");
+    tbody.innerHTML="";
+    if(!inicio||!fim)return;
+    let [anoIni,mesIni]=inicio.split("-").map(Number);
+    let [anoFim,mesFim]=fim.split("-").map(Number);
+    while(anoIni<anoFim||(anoIni===anoFim&&mesIni<=mesFim)){
+      let nomeMes=new Date(anoIni,mesIni-1).toLocaleString("pt-BR",{month:"long"});
+      nomeMes = nomeMes.charAt(0).toUpperCase() + nomeMes.slice(1);
+      tbody.innerHTML+=`<tr><td>${nomeMes}/${anoIni}</td><td><input type="text" oninput="formatarMoeda(this)"></td></tr>`;
+      mesIni++; if(mesIni>12){mesIni=1; anoIni++;}
+    }
+  }
+
+  // Calcular totais
+  function calcularTotais(){
+    ["tabela1","tabela2"].forEach((tbl,idx)=>{
+      let soma=0;
+      document.querySelectorAll("#"+tbl+" tbody input").forEach(inp=>{
+        let v=inp.value.replace(/[R$\s.]/g,"").replace(",","");
+        if(v) soma+=parseFloat(v)/100;
+      });
+      if(idx===0) document.getElementById("total1").innerHTML="<b>Total:</b> "+soma.toLocaleString("pt-BR",{style:"currency",currency:"BRL"});
+      if(idx===1) document.getElementById("total2").innerHTML="<b>Total:</b> "+soma.toLocaleString("pt-BR",{style:"currency",currency:"BRL"});
+    });
+  }
+
+  // Configuração cálculo simulação
+  function configurarCalculo(){
+    const tipo=document.getElementById("calculo2").value;
+    const div=document.getElementById("parametrosCalculo");
+    div.innerHTML="";
+    if(tipo==="aleatorio"){
+      div.innerHTML=`<label>Valor Inicial</label><input type="text" id="valorInicial" oninput="formatarMoeda(this)">
+                     <label>Valor Final</label><input type="text" id="valorFinal" oninput="formatarMoeda(this)">
+                     <button class="btn" onclick="gerarAleatorios()">Gerar Valores</button>`;
+    } else if(tipo==="media"){
+      div.innerHTML=`<button class="btn" onclick="gerarMedia()">Calcular Média</button>`;
+    }
+  }
+
+  function gerarAleatorios(){
+    const ini=parseFloat(document.getElementById("valorInicial").value.replace(/[R$\s.]/g,"").replace(",",""))/100;
+    const fim=parseFloat(document.getElementById("valorFinal").value.replace(/[R$\s.]/g,"").replace(",",""))/100;
+    const linhas=document.querySelectorAll("#tabela2 tbody tr");
+    let passo=(fim-ini)/(linhas.length-1);
+    linhas.forEach((tr,i)=>{
+      let val=Math.round((ini+i*passo+Math.random()*passo/2));
+      tr.querySelector("input").value=val.toLocaleString("pt-BR",{style:"currency",currency:"BRL"});
+    });
+    calcularTotais();
+  }
+
+  function gerarMedia(){
+    const linhas=document.querySelectorAll("#tabela2 tbody tr");
+    let soma=0;
+    linhas.forEach(tr=>{
+      let v=tr.querySelector("input").value.replace(/[R$\s.]/g,"").replace(",","");
+      if(v) soma+=parseFloat(v)/100;
+    });
+    let media=soma/linhas.length;
+    linhas.forEach(tr=>{
+      tr.querySelector("input").value=media.toLocaleString("pt-BR",{style:"currency",currency:"BRL"});
+    });
+    calcularTotais();
+  }
+
+  // Buscar CNPJ (usando BrasilAPI)
+  async function buscarCNPJ(cnpj,idDiv){
+    if(!cnpj) return;
+    cnpj=cnpj.replace(/\D/g,"");
+    try{
+      let r=await fetch(`https://brasilapi.com.br/api/cnpj/v1/${cnpj}`);
+      let d=await r.json();
+      if(d.razao_social){
+        document.getElementById(idDiv).innerHTML=`<b>Razão Social:</b> ${d.razao_social}<br>
+        <b>Endereço:</b> ${d.logradouro}, Nº ${d.numero}, ${d.bairro}, ${d.municipio}/${d.uf}, CEP: ${d.cep}`;
+      }
+    }catch(e){
+      document.getElementById(idDiv).innerHTML="Não foi possível buscar os dados.";
+    }
+  }
+
+  // PDF - Aba 1
+  function gerarPDF1(){
+    const { jsPDF } = window.jspdf;
+    const doc = new jsPDF();
+    doc.setFontSize(12);
+
+    // Cabeçalho alinhado
+    doc.text("À", 10, 20);
+    doc.text("Quem possa interessar", 10, 30);
+    doc.setFontSize(14);
+    doc.text("RELAÇÃO DE FATURAMENTO", 105, 40, { align: "center" });
+    doc.setFontSize(12);
+
+    // Dados da empresa
+    let empresaDiv = document.getElementById("dadosEmpresa1");
+    let razao = "";
+    let endereco = "";
+    let cnpj = document.getElementById("cnpj1").value;
+    if (empresaDiv.innerHTML) {
+      const razaoMatch = empresaDiv.innerHTML.match(/Razão Social:\s*([^<]*)/i);
+      const enderecoMatch = empresaDiv.innerHTML.match(/Endereço:\s*([^<]*)/i);
+      razao = razaoMatch ? razaoMatch[1].trim() : "";
+      endereco = enderecoMatch ? enderecoMatch[1].trim() : "";
+    }
+
+    // Dados do representante legal
+    let representante = "";
+    const repDiv = document.getElementById("rep-real");
+    if (!repDiv.classList.contains("hidden")) {
+      const campos = repDiv.querySelectorAll("input[type='text']");
+      const nome = campos[0].value;
+      const cpf = campos[1].value;
+      const nacionalidade = campos[2].value;
+      const rg = campos[3].value;
+      const enderecoRep = campos[4].value;
+      const estadoCivil = campos[5].value;
+      const profissao = campos[6].value;
+
+      representante = `, neste ato representada por ${nome}, ${nacionalidade}, ${estadoCivil}, ${profissao}, portador da Cédula de Identidade ${rg}, inscrito no CPF sob o n° ${cpf}, residente e domiciliado em ${enderecoRep}`;
+    }
+
+    // Frase principal
+    let frase = `À empresa ${razao}, inscrita no CNPJ sob o n° ${cnpj}, com sede em ${endereco}${representante}, declara por meio deste o faturamento conforme descriminado abaixo:`;
+    frase = frase.charAt(0).toUpperCase() + frase.slice(1);
+
+    doc.setFontSize(12);
+    doc.text(frase, 10, 55, { maxWidth: 190 });
+
+    // Tabela
+    let valores = [];
+    let soma = 0;
+    document.querySelectorAll("#tabela1 tbody tr").forEach(tr => {
+      const mes = tr.children[0].innerText;
+      const valor = tr.children[1].querySelector("input").value || "R$ 0,00";
+      valores.push([mes, valor]);
+      let v = valor.replace(/[R$\s.]/g, "").replace(",", "");
+      if (v) soma += parseFloat(v) / 100;
+    });
+
+    doc.autoTable({
+      head: [["Mês/Ano", "Valores"]],
+      body: valores,
+      startY: 70
+    });
+
+    doc.setFontSize(12);
+    doc.text("Total: " + soma.toLocaleString("pt-BR", { style: "currency", currency: "BRL" }), 10, doc.lastAutoTable.finalY + 10);
+
+    let hoje = new Date();
+    let data = `Palmas (TO), ${hoje.getDate()} de ${hoje.toLocaleString("pt-BR", { month: "long" })} de ${hoje.getFullYear()}`;
+    doc.text(data, 140, doc.lastAutoTable.finalY + 30);
+
+    // Dados do contador (assinatura)
+    const assinatura = document.getElementById("assinatura1").value;
+    let assinaturaY = doc.lastAutoTable.finalY + 50;
+    if (assinatura === "Contador" || assinatura === "Ambos") {
+      const nomeContador = document.getElementById("nomeContador1").value;
+      const crcContador = document.getElementById("crcContador1").value;
+      const crcEstados = document.getElementById("crcEstados1").value;
+      doc.setFontSize(16);
+      doc.text(nomeContador, 105, assinaturaY, { align: "center" });
+      doc.setFontSize(12);
+      doc.text(crcContador, 105, assinaturaY + 8, { align: "center" });
+      doc.text(crcEstados, 105, assinaturaY + 16, { align: "center" });
+    } else {
+      doc.text("Assinatura: " + assinatura, 105, assinaturaY, { align: "center" });
+    }
+    doc.save("Relatorio_Faturamento_Real.pdf");
+  }
+
+  // PDF - Aba 2
+  function gerarPDF2(){
+    const { jsPDF } = window.jspdf;
+    const doc = new jsPDF();
+    doc.setFontSize(12);
+
+    // Cabeçalho alinhado
+    doc.text("À", 10, 20);
+    doc.text("Quem possa interessar", 10, 30);
+    doc.setFontSize(14);
+    doc.text("RELATORIO DE SIMULAÇÃO DE FATURAMENTO", 105, 40, { align: "center" });
+    doc.setFontSize(12);
+
+    // Dados da empresa
+    let empresaDiv = document.getElementById("dadosEmpresa2");
+    let razao = "";
+    let endereco = "";
+    let cnpj = document.getElementById("cnpj2").value;
+    if (empresaDiv.innerHTML) {
+      const razaoMatch = empresaDiv.innerHTML.match(/Razão Social:\s*([^<]*)/i);
+      const enderecoMatch = empresaDiv.innerHTML.match(/Endereço:\s*([^<]*)/i);
+      razao = razaoMatch ? razaoMatch[1].trim() : "";
+      endereco = enderecoMatch ? enderecoMatch[1].trim() : "";
+    }
+
+    // Dados do representante legal
+    let representante = "";
+    const repDiv = document.getElementById("rep-sim");
+    if (!repDiv.classList.contains("hidden")) {
+      const campos = repDiv.querySelectorAll("input[type='text']");
+      const nome = campos[0].value;
+      const cpf = campos[1].value;
+      const nacionalidade = campos[2].value;
+      const rg = campos[3].value;
+      const enderecoRep = campos[4].value;
+      const estadoCivil = campos[5].value;
+      const profissao = campos[6].value;
+
+      representante = `, neste ato representada por ${nome}, ${nacionalidade}, ${estadoCivil}, ${profissao}, portador da Cédula de Identidade ${rg}, inscrito no CPF sob o n° ${cpf}, residente e domiciliado em ${enderecoRep}`;
+    }
+
+    // Frase principal
+    let frase = `À empresa ${razao}, inscrita no CNPJ sob o n° ${cnpj}, com sede em ${endereco}${representante}, declara por meio deste a simulação de faturamento conforme descriminado abaixo:`;
+    frase = frase.charAt(0).toUpperCase() + frase.slice(1);
+
+    doc.setFontSize(12);
+    doc.text(frase, 10, 55, { maxWidth: 190 });
+
+    // Tabela
+    let valores = [];
+    let soma = 0;
+    document.querySelectorAll("#tabela2 tbody tr").forEach(tr => {
+      const mes = tr.children[0].innerText;
+      const valor = tr.children[1].querySelector("input").value || "R$ 0,00";
+      valores.push([mes, valor]);
+      let v = valor.replace(/[R$\s.]/g, "").replace(",", "");
+      if (v) soma += parseFloat(v) / 100;
+    });
+
+    doc.autoTable({
+      head: [["Mês/Ano", "Valores"]],
+      body: valores,
+      startY: 70
+    });
+
+    doc.setFontSize(12);
+    doc.text("Total: " + soma.toLocaleString("pt-BR", { style: "currency", currency: "BRL" }), 10, doc.lastAutoTable.finalY + 10);
+
+    let hoje = new Date();
+    let data = `Palmas (TO), ${hoje.getDate()} de ${hoje.toLocaleString("pt-BR", { month: "long" })} de ${hoje.getFullYear()}`;
+    doc.text(data, 140, doc.lastAutoTable.finalY + 30);
+
+    // Dados do contador (assinatura)
+    const assinatura = document.getElementById("assinatura2").value;
+    let assinaturaY = doc.lastAutoTable.finalY + 50;
+    if (assinatura === "Contador" || assinatura === "Ambos") {
+      const nomeContador = document.getElementById("nomeContador2").value;
+      const crcContador = document.getElementById("crcContador2").value;
+      const crcEstados = document.getElementById("crcEstados2").value;
+      doc.setFontSize(16);
+      doc.text(nomeContador, 105, assinaturaY, { align: "center" });
+      doc.setFontSize(12);
+      doc.text(crcContador, 105, assinaturaY + 8, { align: "center" });
+      doc.text(crcEstados, 105, assinaturaY + 16, { align: "center" });
+    } else {
+      doc.text("Assinatura: " + assinatura, 105, assinaturaY, { align: "center" });
+    }
+    doc.save("Relatorio_Simulacao.pdf");
+  }
+
+  // PDF - Aba 3
+  function gerarPDF3(){
+    const { jsPDF } = window.jspdf;
+    const doc = new jsPDF();
+    doc.setFontSize(12);
+
+    // Cabeçalho alinhado
+    doc.text("À", 10, 20);
+    doc.text("Quem possa interessar", 10, 30);
+    doc.setFontSize(14);
+    doc.text("DECLARAÇÃO DE NÃO FATURAMENTO", 105, 40, { align: "center" });
+    doc.setFontSize(12);
+
+    // Dados da empresa
+    let empresaDiv = document.getElementById("dadosEmpresa3");
+    let razao = "";
+    let endereco = "";
+    let cnpj = document.getElementById("cnpj3").value;
+    if (empresaDiv.innerHTML) {
+      const razaoMatch = empresaDiv.innerHTML.match(/Razão Social:\s*([^<]*)/i);
+      const enderecoMatch = empresaDiv.innerHTML.match(/Endereço:\s*([^<]*)/i);
+      razao = razaoMatch ? razaoMatch[1].trim() : "";
+      endereco = enderecoMatch ? enderecoMatch[1].trim() : "";
+    }
+
+    // Dados do representante legal
+    let representante = "";
+    const repDiv = document.getElementById("rep-nao");
+    if (!repDiv.classList.contains("hidden")) {
+      const campos = repDiv.querySelectorAll("input[type='text']");
+      const nome = campos[0].value;
+      const cpf = campos[1].value;
+      const nacionalidade = campos[2].value;
+      const rg = campos[3].value;
+      const enderecoRep = campos[4].value;
+      const estadoCivil = campos[5].value;
+      const profissao = campos[6].value;
+
+      representante = `, neste ato representada por ${nome}, ${nacionalidade}, ${estadoCivil}, ${profissao}, portador da Cédula de Identidade ${rg}, inscrito no CPF sob o n° ${cpf}, residente e domiciliado em ${enderecoRep}`;
+    }
+
+    // Frase principal
+    let inicio = document.getElementById("inicio3").value;
+    let fim = document.getElementById("fim3").value;
+    let frase = `À empresa ${razao}, inscrita no CNPJ sob o n° ${cnpj}, com sede em ${endereco}${representante}, declara por meio deste que no período de ${inicio} até ${fim} não houve faturamento.`;
+    frase = frase.charAt(0).toUpperCase() + frase.slice(1);
+
+    doc.text(frase, 10, 55, { maxWidth: 190 });
+
+    let hoje = new Date();
+    let data = `Palmas (TO), ${hoje.getDate()} de ${hoje.toLocaleString("pt-BR", { month: "long" })} de ${hoje.getFullYear()}`;
+    doc.text(data, 140, 75);
+
+    // Dados do contador (assinatura)
+    const assinatura = document.getElementById("assinatura3").value;
+    let assinaturaY = 95;
+    if (assinatura === "Contador" || assinatura === "Ambos") {
+      const nomeContador = document.getElementById("nomeContador3").value;
+      const crcContador = document.getElementById("crcContador3").value;
+      const crcEstados = document.getElementById("crcEstados3").value;
+      doc.setFontSize(16);
+      doc.text(nomeContador, 105, assinaturaY, { align: "center" });
+      doc.setFontSize(12);
+      doc.text(crcContador, 105, assinaturaY + 8, { align: "center" });
+      doc.text(crcEstados, 105, assinaturaY + 16, { align: "center" });
+    } else {
+      doc.text("Assinatura: " + assinatura, 105, assinaturaY, { align: "center" });
+    }
+    doc.save("Relatorio_Nao_Faturamento.pdf");
+  }
+</script>
+
+</body>
+</html>
